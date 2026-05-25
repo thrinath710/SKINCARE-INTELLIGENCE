@@ -53,6 +53,18 @@ function buildSearchUrl(
   return `https://www.google.com/search?q=${encoded}+ingredients+skincare`;
 }
 
+function FieldLabel({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+      {children}
+    </label>
+  );
+}
+
 function ProductCard({
   product,
   onDeleted,
@@ -345,13 +357,16 @@ export default function SearchPage() {
 
         <CardContent className="space-y-4">
 
-          <input
-            type="text"
-            value={onlineSearch}
-            onChange={(e) => setOnlineSearch(e.target.value)}
-            placeholder="Search product name, e.g. Cetaphil Moisturising Cream"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Product Search Name</FieldLabel>
+            <input
+              type="text"
+              value={onlineSearch}
+              onChange={(e) => setOnlineSearch(e.target.value)}
+              placeholder="Example: Cetaphil Moisturising Cream"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
+            />
+          </div>
 
           <div className="flex flex-wrap gap-2">
 
@@ -426,47 +441,65 @@ export default function SearchPage() {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
 
-          <input
-            type="text"
-            placeholder="Product name"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Product Name</FieldLabel>
+            <input
+              type="text"
+              placeholder="Example: Cetaphil Moisturising Cream"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
 
-          <input
-            type="text"
-            placeholder="Brand"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Brand</FieldLabel>
+            <input
+              type="text"
+              placeholder="Example: Cetaphil"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
 
-          <input
-            type="text"
-            placeholder="Category, e.g. Moisturizer, Sunscreen, Serum"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Category</FieldLabel>
+            <input
+              type="text"
+              placeholder="Example: Moisturizer, Sunscreen, Serum"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
 
-          <input
-            type="number"
-            placeholder="Price in INR"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Price in INR</FieldLabel>
+            <input
+              type="number"
+              placeholder="Example: 450"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
 
-          <textarea
-            rows={5}
-            placeholder="Paste ingredients separated by commas"
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:border-slate-400 focus:outline-none"
-          />
+          <div>
+            <FieldLabel>Ingredient List</FieldLabel>
+            <textarea
+              rows={5}
+              placeholder="Example: Aqua, Glycerin, Dimethicone, Niacinamide"
+              value={ingredients}
+              onChange={(e) => setIngredients(e.target.value)}
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:border-slate-400 focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Separate ingredients with commas.
+            </p>
+          </div>
 
           <Button
             onClick={handleSaveProduct}
