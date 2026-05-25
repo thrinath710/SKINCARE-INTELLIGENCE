@@ -11,6 +11,7 @@ import {
 import {
   saveProgressLog,
   getProgressLogs,
+  deleteProgressLog,
 } from '@/lib/db';
 
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
-import { Badge } from '@/components/ui/badge';
 
 import { Separator } from '@/components/ui/separator';
 
@@ -36,6 +35,7 @@ import {
   Meh,
   Frown,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 
 const CONDITION_CONFIG: Record<
@@ -108,7 +108,15 @@ function ConditionPicker({
   );
 }
 
-function LogCard({ log }: { log: ProgressLog }) {
+function LogCard({
+  log,
+  onDelete,
+  deleting,
+}: {
+  log: ProgressLog;
+  onDelete: (id: string) => void;
+  deleting: boolean;
+}) {
   const config = CONDITION_CONFIG[log.condition];
 
   const Icon = config.icon;
@@ -116,9 +124,10 @@ function LogCard({ log }: { log: ProgressLog }) {
   return (
     <div className={`rounded-xl border p-4 ${config.color}`}>
       <div className="flex items-start gap-3">
+
         <Icon className="h-5 w-5 shrink-0 text-slate-600" />
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium text-slate-900">
               {new Date(log.date).toLocaleDateString('en-IN', {
@@ -142,6 +151,21 @@ function LogCard({ log }: { log: ProgressLog }) {
             </p>
           )}
         </div>
+
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={deleting}
+          onClick={() => onDelete(log.id)}
+          className="shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-600"
+        >
+          {deleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
+
       </div>
     </div>
   );
@@ -230,6 +254,8 @@ export default function ProgressPage() {
 
   const [saving, setSaving] = useState(false);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [logDate, setLogDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -242,17 +268,15 @@ export default function ProgressPage() {
       try {
         const dbLogs = await getProgressLogs();
 
-        if (dbLogs) {
-          const formattedLogs: ProgressLog[] =
-            dbLogs.map((log: any) => ({
-              id: log.id,
-              date: log.log_date,
-              condition: log.skin_condition,
-              notes: log.notes || '',
-            }));
+        const formattedLogs: ProgressLog[] =
+          dbLogs.map((log: any) => ({
+            id: log.id,
+            date: log.log_date,
+            condition: log.skin_condition,
+            notes: log.notes || '',
+          }));
 
-          setLogs(formattedLogs);
-        }
+        setLogs(formattedLogs);
       } catch (error) {
         console.error(error);
 
@@ -271,23 +295,32 @@ export default function ProgressPage() {
       return;
     }
 
+    const alreadyLoggedDate = logs.some(
+      (log) => log.date === logDate
+    );
+
+    if (alreadyLoggedDate) {
+      toast.error('A progress log already exists for this date.');
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const newLog: ProgressLog = {
-        id: crypto.randomUUID(),
-        date: logDate,
-        condition,
-        notes: notes.trim(),
-      };
-
-      addLog(newLog);
-
-      await saveProgressLog({
+      const savedLog = await saveProgressLog({
         log_date: logDate,
         skin_condition: condition,
         notes: notes.trim(),
       });
+
+      const newLog: ProgressLog = {
+        id: savedLog.id,
+        date: savedLog.log_date,
+        condition: savedLog.skin_condition,
+        notes: savedLog.notes || '',
+      };
+
+      addLog(newLog);
 
       setCondition(null);
 
@@ -307,6 +340,32 @@ export default function ProgressPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm(
+      'Delete this progress log?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(id);
+
+      await deleteProgressLog(id);
+
+      const updatedLogs = logs.filter((log) => log.id !== id);
+
+      setLogs(updatedLogs);
+
+      toast.success('Progress log deleted.');
+    } catch (error) {
+      console.error(error);
+
+      toast.error('Failed to delete progress log');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const goodCount =
     logs.filter((l) => l.condition === 'good').length;
 
@@ -319,7 +378,6 @@ export default function ProgressPage() {
   return (
     <div className="space-y-6 pb-24">
 
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
         <div>
@@ -328,7 +386,7 @@ export default function ProgressPage() {
           </h2>
 
           <p className="mt-1 text-slate-500">
-            Log your skin condition daily
+            Log your skin condition once per day
           </p>
         </div>
 
@@ -343,7 +401,6 @@ export default function ProgressPage() {
         )}
       </div>
 
-      {/* Form */}
       {showForm && (
         <Card className="border-slate-200">
           <CardHeader className="pb-2">
@@ -369,6 +426,12 @@ export default function ProgressPage() {
                 }
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none"
               />
+
+              {logs.some((log) => log.date === logDate) && (
+                <p className="text-xs text-red-500">
+                  You already added a log for this date.
+                </p>
+              )}
             </div>
 
             <ConditionPicker
@@ -387,7 +450,11 @@ export default function ProgressPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleSave}
-                disabled={!condition || saving}
+                disabled={
+                  !condition ||
+                  saving ||
+                  logs.some((log) => log.date === logDate)
+                }
                 className="bg-slate-900 text-white hover:bg-slate-700"
               >
                 {saving ? (
@@ -412,7 +479,6 @@ export default function ProgressPage() {
         </Card>
       )}
 
-      {/* Loading */}
       {loading ? (
         <Card className="border-slate-200">
           <CardContent className="flex items-center justify-center py-12">
@@ -421,7 +487,6 @@ export default function ProgressPage() {
         </Card>
       ) : (
         <>
-          {/* Stats */}
           {logs.length > 0 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
@@ -464,14 +529,12 @@ export default function ProgressPage() {
             </div>
           )}
 
-          {/* Chart */}
           {logs.length >= 2 && (
             <MiniChart logs={logs} />
           )}
 
           <Separator />
 
-          {/* History */}
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
               History
@@ -491,6 +554,8 @@ export default function ProgressPage() {
                   <LogCard
                     key={log.id}
                     log={log}
+                    onDelete={handleDelete}
+                    deleting={deletingId === log.id}
                   />
                 ))}
               </div>
