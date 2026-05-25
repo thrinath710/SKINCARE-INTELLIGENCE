@@ -19,22 +19,26 @@ export async function saveUserProfile(profile: UserProfileInsert) {
     skin_type: profile.skin_type,
     skin_concerns: profile.skin_concerns,
     climate_zone: profile.climate_zone,
-    allergies: profile.allergies,
+    allergies: profile.allergies || [],
     budget_range: profile.budget_range,
   };
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('user_profiles')
-    .insert(payload)
-    .select('*')
-    .single();
+    .insert(payload);
 
   if (error) {
-    console.error('Failed to save user profile:', error);
+    console.error('Failed to save user profile:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
     throw new Error(error.message || 'Failed to save user profile');
   }
 
-  return data;
+  return true;
 }
 
 export async function saveProgressLog(log: ProgressLogInsert) {
@@ -51,7 +55,13 @@ export async function saveProgressLog(log: ProgressLogInsert) {
     .single();
 
   if (error) {
-    console.error('Failed to save progress log:', error);
+    console.error('Failed to save progress log:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
     throw new Error(error.message || 'Failed to save progress log');
   }
 
@@ -65,7 +75,13 @@ export async function getProgressLogs() {
     .order('log_date', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch progress logs:', error);
+    console.error('Failed to fetch progress logs:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
     throw new Error(error.message || 'Failed to fetch progress logs');
   }
 
@@ -81,7 +97,13 @@ export async function deleteProgressLog(logId: string) {
     .single();
 
   if (error) {
-    console.error('Failed to delete progress log:', error);
+    console.error('Failed to delete progress log:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
     throw new Error(error.message || 'Failed to delete progress log');
   }
 
