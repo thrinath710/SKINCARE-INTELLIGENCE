@@ -5,21 +5,28 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import {
   listProducts,
-  analyzeIngredients,
+  Product,
 } from '@/lib/api-client';
 
 import { useAppStore } from '@/lib/store';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import {
   Search,
   ShoppingBag,
   Plus,
   ExternalLink,
-  FlaskConical,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -28,16 +35,160 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://127.0.0.1:8000';
 
-export default function SearchPage() {
+function buildSearchUrl(platform: 'nykaa' | 'amazon' | 'google', query: string) {
+  const encoded = encodeURIComponent(query.trim());
+
+  if (platform === 'nykaa') {
+    return `https://www.nykaa.com/search/result/?q=${encoded}`;
+  }
+
+  if (platform === 'amazon') {
+    return `https://www.amazon.in/s?k=${encoded}`;
+  }
+
+  return `https://www.google.com/search?q=${encoded}+ingredients+skincare`;
+}
+
+function ProductCard({ product }: { product: Product }) {
   const addToRoutine = useAppStore((s) => s.addToRoutine);
+
+  const [timeOfDay, setTimeOfDay] =
+    useState<'morning' | 'evening'>('morning');
+
+  const handleAddToRoutine = () => {
+    addToRoutine(product, timeOfDay);
+
+    toast.success(
+      `Added to ${timeOfDay === 'morning' ? 'AM' : 'PM'} routine.`
+    );
+  };
+
+  return (
+    <Card className="border-slate-200">
+      <CardContent className="space-y-4 pt-5">
+
+        <div className="flex items-start gap-4">
+
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="h-16 w-16 shrink-0 rounded-xl border border-slate-100 object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+              <ShoppingBag className="h-7 w-7 text-slate-400" />
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+
+            <p className="font-semibold leading-tight text-slate-900">
+              {product.name}
+            </p>
+
+            {product.brand && (
+              <p className="mt-0.5 text-sm text-slate-500">
+                {product.brand}
+              </p>
+            )}
+
+            <div className="mt-2 flex flex-wrap gap-2">
+
+              {product.price_inr && (
+                <Badge variant="secondary">
+                  ₹{product.price_inr}
+                </Badge>
+              )}
+
+              {product.category && (
+                <Badge variant="outline" className="capitalize">
+                  {product.category}
+                </Badge>
+              )}
+
+              {product.ingredients && product.ingredients.length > 0 && (
+                <Badge variant="outline">
+                  {product.ingredients.length} ingredients
+                </Badge>
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {product.ingredients && product.ingredients.length > 0 && (
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Ingredients
+            </p>
+
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              {product.ingredients.join(', ')}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+          <div className="flex w-fit items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
+
+            <button
+              onClick={() => setTimeOfDay('morning')}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                timeOfDay === 'morning'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              AM
+            </button>
+
+            <button
+              onClick={() => setTimeOfDay('evening')}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                timeOfDay === 'evening'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Moon className="h-3.5 w-3.5" />
+              PM
+            </button>
+
+          </div>
+
+          <Button
+            size="sm"
+            onClick={handleAddToRoutine}
+            className="bg-slate-900 text-white hover:bg-slate-700"
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Add to Routine
+          </Button>
+
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function SearchPage() {
+  const [onlineSearch, setOnlineSearch] = useState('');
 
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
-  const [ingredients, setIngredients] = useState('');
+  const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [ingredients, setIngredients] = useState('');
 
   const {
     data: products,
+    isLoading,
     refetch,
   } = useQuery({
     queryKey: ['products'],
@@ -48,8 +199,8 @@ export default function SearchPage() {
     mutationFn: async () => {
       const parsedIngredients = ingredients
         .split(',')
-        .map((i) => i.trim())
-        .filter(Boolean);
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
       const response = await fetch(
         `${API_BASE}/api/v1/products/manual`,
@@ -59,53 +210,63 @@ export default function SearchPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: productName,
-            brand,
-            ingredients: parsedIngredients,
+            name: productName.trim(),
+            brand: brand.trim() || null,
+            category: category.trim() || null,
             price_inr: price ? Number(price) : null,
+            ingredients: parsedIngredients,
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to save product');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save product');
       }
 
       return response.json();
     },
 
     onSuccess: () => {
-      toast.success('Product added successfully.');
+      toast.success('Product saved successfully.');
 
       setProductName('');
       setBrand('');
-      setIngredients('');
+      setCategory('');
       setPrice('');
+      setIngredients('');
 
       refetch();
     },
 
-    onError: () => {
-      toast.error('Failed to add product.');
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to save product.');
     },
   });
 
-  const handleAdd = () => {
+  const handleSaveProduct = () => {
     if (!productName.trim()) {
       toast.error('Enter product name.');
       return;
     }
 
-    if (!ingredients.trim()) {
-      toast.error('Enter ingredients.');
+    const parsedIngredients = ingredients
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+
+    if (parsedIngredients.length === 0) {
+      toast.error('Enter at least one ingredient.');
       return;
     }
 
     createMutation.mutate();
   };
 
+  const canOpenSearch = onlineSearch.trim().length > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
 
       <div>
         <h2 className="text-2xl font-bold text-slate-900">
@@ -113,15 +274,98 @@ export default function SearchPage() {
         </h2>
 
         <p className="mt-1 text-slate-500">
-          Add skincare products manually for analysis and routines
+          Find products online, add verified ingredients, and build your routine.
         </p>
       </div>
 
       <Card className="border-slate-200">
-        <CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Search className="h-4 w-4 text-slate-500" />
+            Search Product Online
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+
+          <input
+            type="text"
+            value={onlineSearch}
+            onChange={(e) => setOnlineSearch(e.target.value)}
+            placeholder="Search product name, e.g. Cetaphil Moisturising Cream"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
+          />
+
+          <div className="flex flex-wrap gap-2">
+
+            <a
+              href={canOpenSearch ? buildSearchUrl('nykaa', onlineSearch) : '#'}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (!canOpenSearch) {
+                  e.preventDefault();
+                  toast.error('Type a product name first.');
+                }
+              }}
+            >
+              <Button variant="outline" type="button">
+                Search Nykaa
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </a>
+
+            <a
+              href={canOpenSearch ? buildSearchUrl('amazon', onlineSearch) : '#'}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (!canOpenSearch) {
+                  e.preventDefault();
+                  toast.error('Type a product name first.');
+                }
+              }}
+            >
+              <Button variant="outline" type="button">
+                Search Amazon
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </a>
+
+            <a
+              href={canOpenSearch ? buildSearchUrl('google', onlineSearch) : '#'}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (!canOpenSearch) {
+                  e.preventDefault();
+                  toast.error('Type a product name first.');
+                }
+              }}
+            >
+              <Button variant="outline" type="button">
+                Search Ingredients
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </a>
+
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs leading-relaxed text-amber-800">
+              For accuracy, copy the ingredient list from the official product page,
+              packaging, or brand website. The app will then analyse and save it.
+            </p>
+          </div>
+
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Plus className="h-4 w-4 text-slate-500" />
-            Add Product
+            Add Verified Product
           </CardTitle>
         </CardHeader>
 
@@ -132,7 +376,7 @@ export default function SearchPage() {
             placeholder="Product name"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
           />
 
           <input
@@ -140,7 +384,15 @@ export default function SearchPage() {
             placeholder="Brand"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+          />
+
+          <input
+            type="text"
+            placeholder="Category, e.g. Moisturizer, Sunscreen, Serum"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
           />
 
           <input
@@ -148,61 +400,26 @@ export default function SearchPage() {
             placeholder="Price in INR"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
           />
 
           <textarea
-            rows={4}
-            placeholder="Ingredients separated by commas"
+            rows={5}
+            placeholder="Paste ingredients separated by commas"
             value={ingredients}
             onChange={(e) => setIngredients(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm"
+            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:border-slate-400 focus:outline-none"
           />
 
           <Button
-            onClick={handleAdd}
+            onClick={handleSaveProduct}
             disabled={createMutation.isPending}
             className="bg-slate-900 text-white hover:bg-slate-700"
           >
             {createMutation.isPending
-              ? 'Adding...'
-              : 'Add Product'}
+              ? 'Saving...'
+              : 'Save Product'}
           </Button>
-
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Search className="h-4 w-4 text-slate-500" />
-            Quick Shopping Links
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex flex-wrap gap-3">
-
-          <a
-            href="https://www.nykaa.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Button variant="outline">
-              Nykaa
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
-
-          <a
-            href="https://www.amazon.in"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Button variant="outline">
-              Amazon
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
 
         </CardContent>
       </Card>
@@ -212,69 +429,33 @@ export default function SearchPage() {
           Saved Products
         </h3>
 
-        <div className="space-y-4">
+        {isLoading && (
+          <div className="space-y-3">
+            <Skeleton className="h-36 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+          </div>
+        )}
 
-          {products?.map((product: any) => (
-            <Card
-              key={product.id}
-              className="border-slate-200"
-            >
-              <CardContent className="pt-5">
+        {!isLoading && (!products || products.length === 0) && (
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white py-12 text-center">
+            <ShoppingBag className="h-8 w-8 text-slate-300" />
 
-                <div className="flex items-start justify-between gap-4">
+            <p className="mt-2 text-sm text-slate-400">
+              No products saved yet.
+            </p>
+          </div>
+        )}
 
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      {product.name}
-                    </p>
-
-                    {product.brand && (
-                      <p className="text-sm text-slate-500">
-                        {product.brand}
-                      </p>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap gap-2">
-
-                      {product.price_inr && (
-                        <Badge variant="secondary">
-                          ₹{product.price_inr}
-                        </Badge>
-                      )}
-
-                      {product.ingredients?.length > 0 && (
-                        <Badge variant="outline">
-                          {product.ingredients.length} ingredients
-                        </Badge>
-                      )}
-
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      addToRoutine(product, 'morning')
-                    }
-                    className="bg-slate-900 text-white hover:bg-slate-700"
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Routine
-                  </Button>
-
-                </div>
-
-                {product.ingredients?.length > 0 && (
-                  <p className="mt-4 text-xs leading-relaxed text-slate-500">
-                    {product.ingredients.join(', ')}
-                  </p>
-                )}
-
-              </CardContent>
-            </Card>
-          ))}
-
-        </div>
+        {products && products.length > 0 && (
+          <div className="space-y-4">
+            {products.map((product: Product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
     </div>
