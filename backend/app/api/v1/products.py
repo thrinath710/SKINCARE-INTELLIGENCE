@@ -28,6 +28,11 @@ class ManualProductRequest(BaseModel):
 
 @router.post("/manual")
 async def create_manual_product(request: ManualProductRequest):
+    if not request.name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Product name is required."
+        )
 
     if len(request.ingredients) == 0:
         raise HTTPException(
@@ -35,20 +40,38 @@ async def create_manual_product(request: ManualProductRequest):
             detail="At least one ingredient is required."
         )
 
-    analysis = engine.analyze(request.ingredients)
+    cleaned_ingredients = [
+        ingredient.strip()
+        for ingredient in request.ingredients
+        if ingredient.strip()
+    ]
+
+    if len(cleaned_ingredients) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one valid ingredient is required."
+        )
+
+    analysis = engine.analyze(cleaned_ingredients)
 
     inserted = supabase.table("products").insert({
-        "name": request.name,
-        "brand": request.brand,
-        "category": request.category,
+        "name": request.name.strip(),
+        "brand": request.brand.strip() if request.brand else None,
+        "category": request.category.strip() if request.category else None,
         "platform": "manual",
         "url": request.url,
         "image_url": request.image_url,
         "price_inr": request.price_inr,
-        "ingredients": request.ingredients,
+        "ingredients": cleaned_ingredients,
         "rating": None,
         "review_count": None,
     }).execute()
+
+    if not inserted.data:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save product."
+        )
 
     saved_product = inserted.data[0]
 
@@ -75,14 +98,34 @@ async def create_manual_product(request: ManualProductRequest):
 
 @router.get("/")
 async def list_products(limit: int = 50):
-
     result = (
         supabase
         .table("products")
         .select("*")
-        .order("id", desc=True)
         .limit(limit)
         .execute()
     )
 
     return result.data
+
+
+@router.delete("/{product_id}")
+async def delete_product(product_id: str):
+    result = (
+        supabase
+        .table("products")
+        .delete()
+        .eq("id", product_id)
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found or already deleted."
+        )
+
+    return {
+        "message": "Product deleted successfully.",
+        "deleted_product": result.data[0]
+    }

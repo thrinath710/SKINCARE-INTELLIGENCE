@@ -27,6 +27,7 @@ import {
   ExternalLink,
   Sun,
   Moon,
+  Trash2,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -35,7 +36,10 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://127.0.0.1:8000';
 
-function buildSearchUrl(platform: 'nykaa' | 'amazon' | 'google', query: string) {
+function buildSearchUrl(
+  platform: 'nykaa' | 'amazon' | 'google',
+  query: string
+) {
   const encoded = encodeURIComponent(query.trim());
 
   if (platform === 'nykaa') {
@@ -49,11 +53,44 @@ function buildSearchUrl(platform: 'nykaa' | 'amazon' | 'google', query: string) 
   return `https://www.google.com/search?q=${encoded}+ingredients+skincare`;
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({
+  product,
+  onDeleted,
+}: {
+  product: Product;
+  onDeleted: () => void;
+}) {
   const addToRoutine = useAppStore((s) => s.addToRoutine);
 
   const [timeOfDay, setTimeOfDay] =
     useState<'morning' | 'evening'>('morning');
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        `${API_BASE}/api/v1/products/${product.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to delete product');
+      }
+
+      return response.json();
+    },
+
+    onSuccess: () => {
+      toast.success('Product deleted.');
+      onDeleted();
+    },
+
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to delete product.');
+    },
+  });
 
   const handleAddToRoutine = () => {
     addToRoutine(product, timeOfDay);
@@ -61,6 +98,16 @@ function ProductCard({ product }: { product: Product }) {
     toast.success(
       `Added to ${timeOfDay === 'morning' ? 'AM' : 'PM'} routine.`
     );
+  };
+
+  const handleDelete = () => {
+    const confirmed = window.confirm(
+      `Delete "${product.name}" from saved products?`
+    );
+
+    if (!confirmed) return;
+
+    deleteMutation.mutate();
   };
 
   return (
@@ -116,6 +163,16 @@ function ProductCard({ product }: { product: Product }) {
             </div>
 
           </div>
+
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-600"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
 
         </div>
 
@@ -452,6 +509,7 @@ export default function SearchPage() {
               <ProductCard
                 key={product.id}
                 product={product}
+                onDeleted={refetch}
               />
             ))}
           </div>
