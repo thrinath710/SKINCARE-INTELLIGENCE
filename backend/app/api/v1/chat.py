@@ -1,9 +1,10 @@
+import os
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
 from groq import Groq
-from app.core.config import settings
 
 router = APIRouter()
 
@@ -25,29 +26,36 @@ async def chat_with_ai(request: ChatRequest):
             detail="Message cannot be empty."
         )
 
-    try:
-        client = Groq(
-            api_key=settings.GROQ_API_KEY
+    groq_api_key = os.getenv("GROQ_API_KEY")
+
+    if not groq_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="GROQ_API_KEY is missing from backend environment variables."
         )
+
+    try:
+        client = Groq(api_key=groq_api_key)
 
         prompt = f"""
 You are SkincareIQ AI, an expert skincare assistant.
 
 User Profile:
-- Skin Type: {request.skin_type}
-- Skin Concerns: {request.skin_concerns}
-- Climate Zone: {request.climate_zone}
-- Budget Range: {request.budget_range}
+- Skin Type: {request.skin_type or "unknown"}
+- Skin Concerns: {", ".join(request.skin_concerns or []) or "unknown"}
+- Climate Zone: {request.climate_zone or "unknown"}
+- Budget Range: {request.budget_range or "unknown"}
 
 User Question:
 {request.message}
 
 Rules:
-- Give evidence-based skincare advice
-- Explain ingredients simply
-- Be practical and concise
-- Focus on Indian skin and climate
-- Avoid medical diagnosis
+- Give evidence-based skincare advice.
+- Explain ingredients simply.
+- Be practical and concise.
+- Focus on Indian skin and climate.
+- Avoid medical diagnosis.
+- Recommend seeing a dermatologist for severe or persistent issues.
 """
 
         response = client.chat.completions.create(
