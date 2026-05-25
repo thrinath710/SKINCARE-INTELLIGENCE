@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Product } from './api-client';
 
 export type SkinCondition = 'good' | 'okay' | 'bad';
 
@@ -13,10 +14,9 @@ export interface UserProfile {
   onboarded: boolean;
 }
 
-export interface RoutineProduct {
-  id: string;
-  name: string;
-  time: 'am' | 'pm';
+export interface RoutineProduct extends Product {
+  time_of_day: 'morning' | 'evening';
+  step_order: number;
 }
 
 export interface ProgressLog {
@@ -33,9 +33,18 @@ interface AppState {
 
   setProfile: (profile: UserProfile) => void;
 
-  addToRoutine: (product: RoutineProduct) => void;
+  addToRoutine: (
+    product: Product,
+    timeOfDay: 'morning' | 'evening'
+  ) => void;
+
   removeFromRoutine: (id: string) => void;
-  reorderRoutine: (routine: RoutineProduct[]) => void;
+
+  reorderRoutine: (
+    timeOfDay: 'morning' | 'evening',
+    oldIndex: number,
+    newIndex: number
+  ) => void;
 
   addLog: (log: ProgressLog) => void;
   setLogs: (logs: ProgressLog[]) => void;
@@ -43,11 +52,9 @@ interface AppState {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       profile: null,
-
       routine: [],
-
       logs: [],
 
       setProfile: (profile) =>
@@ -55,19 +62,53 @@ export const useAppStore = create<AppState>()(
           profile,
         }),
 
-      addToRoutine: (product) =>
-        set((state) => ({
-          routine: [...state.routine, product],
-        })),
+      addToRoutine: (product, timeOfDay) =>
+        set((state) => {
+          const sameTimeProducts = state.routine.filter(
+            (p) => p.time_of_day === timeOfDay
+          );
+
+          const routineProduct: RoutineProduct = {
+            ...product,
+            id: `${product.id}-${timeOfDay}-${Date.now()}`,
+            time_of_day: timeOfDay,
+            step_order: sameTimeProducts.length,
+          };
+
+          return {
+            routine: [...state.routine, routineProduct],
+          };
+        }),
 
       removeFromRoutine: (id) =>
         set((state) => ({
           routine: state.routine.filter((p) => p.id !== id),
         })),
 
-      reorderRoutine: (routine) =>
-        set({
-          routine,
+      reorderRoutine: (timeOfDay, oldIndex, newIndex) =>
+        set((state) => {
+          const sameTimeProducts = state.routine
+            .filter((p) => p.time_of_day === timeOfDay)
+            .sort((a, b) => a.step_order - b.step_order);
+
+          const otherProducts = state.routine.filter(
+            (p) => p.time_of_day !== timeOfDay
+          );
+
+          const reordered = [...sameTimeProducts];
+
+          const [moved] = reordered.splice(oldIndex, 1);
+
+          reordered.splice(newIndex, 0, moved);
+
+          const updated = reordered.map((product, index) => ({
+            ...product,
+            step_order: index,
+          }));
+
+          return {
+            routine: [...otherProducts, ...updated],
+          };
         }),
 
       addLog: (log) =>

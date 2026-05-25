@@ -194,7 +194,8 @@ export default function AnalyzePage() {
         ingredients,
         skin_type: profile?.skin_type,
         skin_concerns: profile?.skin_concerns,
-        climate_zone: profile?.climate_zone,
+        climate: profile?.climate_zone,
+        budget: profile?.budget_range,
       }),
 
     onSuccess: (data: any) => {
