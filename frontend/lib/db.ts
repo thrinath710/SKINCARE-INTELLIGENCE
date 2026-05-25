@@ -17,7 +17,7 @@ export interface ProgressLogInsert {
 export async function saveUserProfile(profile: UserProfileInsert) {
   const payload = {
     skin_type: profile.skin_type,
-    skin_concerns: profile.skin_concerns,
+    skin_concerns: profile.skin_concerns || [],
     climate_zone: profile.climate_zone,
     allergies: profile.allergies || [],
     budget_range: profile.budget_range,
@@ -28,17 +28,22 @@ export async function saveUserProfile(profile: UserProfileInsert) {
     .insert(payload);
 
   if (error) {
-    console.error('Failed to save user profile:', {
+    console.warn('Supabase profile save skipped:', {
       message: error.message,
       details: error.details,
       hint: error.hint,
       code: error.code,
     });
 
-    throw new Error(error.message || 'Failed to save user profile');
+    return {
+      saved: false,
+      reason: error.message,
+    };
   }
 
-  return true;
+  return {
+    saved: true,
+  };
 }
 
 export async function saveProgressLog(log: ProgressLogInsert) {

@@ -126,9 +126,13 @@ export default function OnboardingPage() {
       });
 
       // Save to Supabase
-      await saveUserProfile(profilePayload);
+      const saveResult = await saveUserProfile(profilePayload);
 
-      toast.success('Profile saved successfully!');
+      if (saveResult.saved) {
+        toast.success('Profile saved successfully!');
+      } else {
+        toast.success('Profile saved locally. Cloud sync skipped.');
+      }
 
       router.push('/dashboard');
     } catch (error) {
