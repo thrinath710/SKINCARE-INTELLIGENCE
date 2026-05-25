@@ -1,0 +1,94 @@
+{
+  "conflicts": [
+    {
+      "ingredient_a": "ASCORBIC ACID",
+      "ingredient_b": "NIACINAMIDE",
+      "conflict_type": "efficacy",
+      "severity": "caution",
+      "explanation": "When combined, Vitamin C and Niacinamide can form niacin which may cause temporary skin flushing in some people.",
+      "recommendation": "Use Vitamin C in the morning and Niacinamide in the evening, or use a stabilized Vitamin C derivative instead.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "ASCORBIC ACID",
+      "ingredient_b": "GLYCOLIC ACID",
+      "conflict_type": "ph_incompatible",
+      "severity": "caution",
+      "explanation": "Both require very low pH to work. Using together increases irritation risk significantly without added benefit.",
+      "recommendation": "Use one in the morning and one in the evening.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "RETINOL",
+      "ingredient_b": "GLYCOLIC ACID",
+      "conflict_type": "irritation",
+      "severity": "avoid",
+      "explanation": "Both are strong actives that increase cell turnover. Combined use causes severe irritation, redness and peeling.",
+      "recommendation": "Never use in the same routine. Use Retinol at night and Glycolic Acid on alternate nights.",
+      "time_separation_hours": 24
+    },
+    {
+      "ingredient_a": "RETINOL",
+      "ingredient_b": "SALICYLIC ACID",
+      "conflict_type": "irritation",
+      "severity": "avoid",
+      "explanation": "Both increase skin sensitivity and cell turnover. Combined use leads to severe dryness and irritation.",
+      "recommendation": "Use on alternate nights only.",
+      "time_separation_hours": 24
+    },
+    {
+      "ingredient_a": "RETINOL",
+      "ingredient_b": "BENZOYL PEROXIDE",
+      "conflict_type": "oxidation",
+      "severity": "avoid",
+      "explanation": "Benzoyl Peroxide oxidizes Retinol, making it completely ineffective. Wastes both products.",
+      "recommendation": "Never use together. Use Benzoyl Peroxide in the morning and Retinol at night.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "BENZOYL PEROXIDE",
+      "ingredient_b": "GLYCOLIC ACID",
+      "conflict_type": "irritation",
+      "severity": "caution",
+      "explanation": "Both are strong actives. Combined use significantly increases dryness, irritation and barrier damage.",
+      "recommendation": "Use on alternate days or different times of day.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "SALICYLIC ACID",
+      "ingredient_b": "GLYCOLIC ACID",
+      "conflict_type": "irritation",
+      "severity": "caution",
+      "explanation": "Combining AHA and BHA doubles exfoliation, leading to over-exfoliation and a damaged skin barrier.",
+      "recommendation": "Use one at a time. Alternate between days.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "ASCORBIC ACID",
+      "ingredient_b": "RETINOL",
+      "conflict_type": "ph_incompatible",
+      "severity": "time_separate",
+      "explanation": "Vitamin C works at pH below 3.5 while Retinol works best at higher pH. Using together reduces efficacy of both.",
+      "recommendation": "Use Vitamin C in the morning and Retinol at night.",
+      "time_separation_hours": 12
+    },
+    {
+      "ingredient_a": "NIACINAMIDE",
+      "ingredient_b": "GLYCOLIC ACID",
+      "conflict_type": "ph_incompatible",
+      "severity": "caution",
+      "explanation": "Glycolic Acid temporarily raises skin pH when Niacinamide is present, reducing AHA exfoliation efficacy.",
+      "recommendation": "Apply Glycolic Acid first, wait 30 minutes, then apply Niacinamide.",
+      "time_separation_hours": 0
+    },
+    {
+      "ingredient_a": "RETINOL",
+      "ingredient_b": "SALICYLIC ACID",
+      "conflict_type": "irritation",
+      "severity": "avoid",
+      "explanation": "Salicylic Acid can break down Retinol and combined irritation is severe, especially for Indian skin in humid climates.",
+      "recommendation": "Never use in the same routine.",
+      "time_separation_hours": 24
+    }
+  ]
+}
