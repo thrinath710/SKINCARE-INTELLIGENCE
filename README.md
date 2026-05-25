@@ -178,8 +178,7 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```
 
-These are shown only as variable names for setup purposes.  
-Do NOT put your actual secret keys into the README.
+
 
 ---
 
