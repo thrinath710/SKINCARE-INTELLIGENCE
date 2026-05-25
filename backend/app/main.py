@@ -6,13 +6,13 @@ from app.api.v1.analysis import router as analysis_router
 from app.api.v1.products import router as products_router
 from app.api.v1.ocr import router as ocr_router
 from app.api.v1.recommendations import router as recommendations_router
+from app.api.v1.chat import router as chat_router
 
 app = FastAPI(
     title="SkincareIQ API",
     version="1.0.0",
 )
 
-# Production + local frontend URLs
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -27,11 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-# API Routes
+
 app.include_router(
     ingredients_router,
     prefix="/api/v1/ingredients",
@@ -60,4 +61,10 @@ app.include_router(
     recommendations_router,
     prefix="/api/v1/recommendations",
     tags=["Recommendations"],
+)
+
+app.include_router(
+    chat_router,
+    prefix="/api/v1/chat",
+    tags=["Chat"],
 )

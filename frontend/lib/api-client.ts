@@ -191,3 +191,21 @@ export interface RecommendationPayload {
   climate?: string;
   budget?: string;
 }
+export interface ChatPayload {
+  message: string;
+  skin_type?: string;
+  skin_concerns?: string[];
+  climate_zone?: string;
+  budget_range?: string;
+}
+
+export interface ChatResponse {
+  response: string;
+  error?: string;
+}
+
+export const chatWithAI = (payload: ChatPayload) =>
+  apiFetch<ChatResponse>(`/api/v1/chat/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
